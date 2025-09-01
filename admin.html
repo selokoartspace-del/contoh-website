@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Panel — Multi-Event Ticketing</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --muted:#95a3b3; --text:#eaf0f7;
+    --primary:#6ea8fe; --primary-600:#4d90ff; --accent:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+    --border:#1c2533; --chip:#0f1520;
+  }
+  [data-theme="light"]{
+    --bg:#f7f9fc; --panel:#ffffff; --muted:#506175; --text:#0b1220;
+    --primary:#2563eb; --primary-600:#1d4ed8; --accent:#16a34a; --warn:#d97706; --danger:#dc2626;
+    --border:#e6eef6; --chip:#eff5fb;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+  }
+  a{color:var(--primary); text-decoration:none}
+  .app{display:grid; grid-template-columns:260px 1fr; min-height:100vh}
+  aside{
+    background:var(--panel); border-right:1px solid var(--border); padding:18px; position:sticky; top:0; height:100vh; overflow:auto;
+  }
+  .brand{display:flex; align-items:center; gap:10px; margin-bottom:22px}
+  .logo{width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--primary),#7c3aed); display:flex; align-items:center; justify-content:center; font-weight:700; color:white}
+  .brand h1{font-size:16px; margin:0}
+  .nav a{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; color:var(--text)}
+  .nav a.active,.nav a:hover{background:var(--chip)}
+  .nav .badge{margin-left:auto; padding:0 8px; font-size:12px; border-radius:999px; background:var(--border); color:var(--muted)}
+  .muted{color:var(--muted)}
+  header{
+    display:flex; align-items:center; gap:12px; padding:14px 18px; background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5;
+  }
+  .search{flex:1; display:flex; align-items:center; gap:8px; background:var(--chip); border:1px solid var(--border); padding:8px 10px; border-radius:10px}
+  .search input{all:unset; flex:1}
+  .btn{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer}
+  .btn.primary{background:var(--primary); border-color:transparent; color:#fff}
+  .btn.warn{background:var(--warn); color:#fff; border-color:transparent}
+  .btn.danger{background:var(--danger); color:#fff; border-color:transparent}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+  main{padding:18px}
+  .grid{display:grid; gap:14px}
+  .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px}
+  .card h3{margin:0 0 10px; font-size:15px}
+  .kpi{display:flex; align-items:center; justify-content:space-between}
+  .kpi .val{font-size:22px; font-weight:700}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:var(--chip); border:1px solid var(--border); padding:4px 8px; border-radius:999px; color:var(--muted)}
+  table{width:100%; border-collapse:separate; border-spacing:0 8px}
+  th,td{padding:10px 12px; text-align:left}
+  thead th{font-size:12px; color:var(--muted)}
+  tbody tr{background:var(--panel); border:1px solid var(--border)}
+  tbody tr td:first-child{border-top-left-radius:10px; border-bottom-left-radius:10px}
+  tbody tr td:last-child{border-top-right-radius:10px; border-bottom-right-radius:10px}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px}
+  .toolbar .spacer{flex:1}
+  .field{display:grid; gap:6px; margin-bottom:12px}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  input[type="text"],input[type="number"],input[type="datetime-local"],input[type="email"],select,textarea{
+    width:100%; padding:10px 12px; background:var(--chip); color:var(--text);
+    border:1px solid var(--border); border-radius:10px; outline:none
+  }
+  textarea{min-height:90px; resize:vertical}
+  .status{padding:6px 10px; border-radius:999px; font-size:12px; font-weight:600; display:inline-block}
+  .status.live{background:rgba(34,197,94,.15); color:#22c55e}
+  .status.draft{background:rgba(59,130,246,.15); color:#60a5fa}
+  .status.closed{background:rgba(239,68,68,.15); color:#ef4444}
+  .empty{padding:30px; text-align:center; color:var(--muted)}
+  .right{text-align:right}
+  .danger-text{color:var(--danger)}
+  .success-text{color:var(--accent)}
+  .hidden{display:none !important}
+  .modal{
+    position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:20;
+  }
+  .modal .dialog{width:min(720px,92vw); background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px}
+  .flex{display:flex; gap:10px; align-items:center}
+  .between{display:flex; align-items:center; justify-content:space-between}
+  .pill{padding:4px 8px; border-radius:999px; background:var(--chip); color:var(--muted); font-size:12px}
+  .avatar{width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#22d3ee,#6366f1)}
+  .table-scroll{overflow:auto}
+  .footer-note{margin-top:8px; color:var(--muted); font-size:12px}
+  .login-wrap{max-width:380px; margin:6vh auto; padding:22px}
+  .notice{padding:10px 12px; border-radius:10px; background:rgba(37,99,235,.15); border:1px solid var(--border); color:var(--text)}
+  @media (max-width:960px){
+    .app{grid-template-columns:1fr}
+    aside{position:static; height:auto}
+    .grid.cols-3{grid-template-columns:1fr}
+    .grid.cols-2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body data-theme="dark">
+<div id="app" class="app">
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="brand">
+      <div class="logo">ME</div>
+      <h1>MultiEvent Admin</h1>
+    </div>
+    <div class="nav">
+      <a href="#dashboard" data-nav class="active">📊 Dashboard</a>
+      <a href="#events" data-nav>🎫 Event</a>
+      <a href="#tickets" data-nav>🏷️ Tiket</a>
+      <a href="#orders" data-nav>🧾 Pesanan</a>
+      <a href="#attendees" data-nav>🧍 Peserta</a>
+      <a href="#settings" data-nav>⚙️ Pengaturan <span class="badge pill" id="dbSize">0 KB</span></a>
+      <hr style="border:none;border-top:1px solid var(--border); margin:12px 0">
+      <a href="#" id="btnLogout">🔒 Logout</a>
+    </div>
+    <div style="margin-top:16px" class="muted">💡 Tip: gunakan pencarian global (atas) untuk cepat menemukan event, tiket, atau pesanan.</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div>
+    <header>
+      <div class="search">
+        🔎
+        <input id="globalSearch" placeholder="Cari event, tiket, pesanan… (Ctrl+/)" />
+      </div>
+      <button class="btn" id="btnTheme">🌓 Tema</button>
+      <div class="avatar" title="Admin"></div>
+    </header>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view">
+        <div class="grid cols-3">
+          <div class="card kpi">
+            <div>
+              <div class="muted">Event Aktif</div>
+              <div class="val" id="kpiEvents">0</div>
+            </div>
+            <span class="chip">Total: <b id="kpiEventsTotal">0</b></span>
+          </div>
+          <div class="card kpi">
+            <div>
+              <div class="muted">Tiket Terjual</div>
+              <div class="val" id="kpiSold">0</div>
+            </div>
+            <span class="chip">Kuota: <b id="kpiCapacity">0</b></span>
+          </div>
+          <div class="card kpi">
+            <div>
+              <div class="muted">Pendapatan (IDR)</div>
+              <div class="val" id="kpiRevenue">0</div>
+            </div>
+            <span class="chip">Refund: <b id="kpiRefund">0</b></span>
+          </div>
+        </div>
+
+        <div class="grid cols-2" style="margin-top:14px">
+          <div class="card">
+            <h3>Penjualan per Event</h3>
+            <canvas id="chartSales" height="140"></canvas>
+            <div class="footer-note">Grafik sederhana tanpa library eksternal.</div>
+          </div>
+          <div class="card">
+            <h3>Event Terbaru</h3>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr><th>Event</th><th>Waktu</th><th>Status</th><th class="right">Terjual</th></tr>
+                </thead>
+                <tbody id="latestEvents"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EVENTS -->
+      <section id="view-events" class="view hidden">
+        <div class="between">
+          <h2 style="margin:0">Manajemen Event</h2>
+          <div class="toolbar">
+            <input id="qEvents" placeholder="Cari event…" />
+            <select id="fStatus">
+              <option value="">Semua status</option>
+              <option value="draft">Draft</option>
+              <option value="live">Live</option>
+              <option value="closed">Closed</option>
+            </select>
+            <div class="spacer"></div>
+            <button class="btn primary" id="btnAddEvent">+ Tambah Event</button>
+            <button class="btn" id="btnExportEvents">Ekspor CSV</button>
+          </div>
+        </div>
+        <div id="eventsTableWrap" class="table-scroll"></div>
+      </section>
+
+      <!-- TICKETS -->
+      <section id="view-tickets" class="view hidden">
+        <div class="between">
+          <h2 style="margin:0">Kategori Tiket</h2>
+          <div class="toolbar">
+            <select id="selEventForTickets"></select>
+            <div class="spacer"></div>
+            <button class="btn primary" id="btnAddTicket">+ Tambah Kategori Tiket</button>
+            <button class="btn" id="btnExportTickets">Ekspor CSV</button>
+          </div>
+        </div>
+        <div id="ticketsTableWrap" class="table-scroll"></div>
+      </section>
+
+      <!-- ORDERS -->
+      <section id="view-orders" class="view hidden">
+        <div class="between">
+          <h2 style="margin:0">Pesanan</h2>
+          <div class="toolbar">
+            <input id="qOrders" placeholder="Cari nama/email/kode…" />
+            <select id="fOrderStatus">
+              <option value="">Semua</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="refunded">Refunded</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <div class="spacer"></div>
+            <button class="btn" id="btnAddOrder">+ Tambah Pesanan</button>
+            <button class="btn" id="btnExportOrders">Ekspor CSV</button>
+          </div>
+        </div>
+        <div id="ordersTableWrap" class="table-scroll"></div>
+      </section>
+
+      <!-- ATTENDEES -->
+      <section id="view-attendees" class="view hidden">
+        <div class="between">
+          <h2 style="margin:0">Peserta</h2>
+          <div class="toolbar">
+            <select id="selEventForAttendees"></select>
+            <div class="spacer"></div>
+            <button class="btn" id="btnExportAttendees">Ekspor CSV</button>
+          </div>
+        </div>
+        <div id="attendeesTableWrap" class="table-scroll"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view hidden">
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Profil Organisasi</h3>
+            <div class="field">
+              <label>Nama</label>
+              <input id="orgName" placeholder="Contoh: MegaEvent ID"/>
+            </div>
+            <div class="field">
+              <label>Email Admin</label>
+              <input id="adminEmail" type="email" placeholder="admin@domain.com"/>
+            </div>
+            <div class="field">
+              <label>Mata Uang</label>
+              <select id="currency">
+                <option value="IDR">IDR</option>
+                <option value="USD">USD</option>
+                <option value="SGD">SGD</option>
+              </select>
+            </div>
+            <button class="btn primary" id="btnSaveSettings">Simpan</button>
+          </div>
+          <div class="card">
+            <h3>Database Lokal</h3>
+            <div class="flex">
+              <button class="btn" id="btnSeed">Seed Data Contoh</button>
+              <button class="btn warn" id="btnBackup">Backup (JSON)</button>
+              <button class="btn danger" id="btnWipe">Hapus Semua</button>
+            </div>
+            <div class="footer-note">Data disimpan di <code>localStorage</code> browser Anda.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal" id="modalEvent">
+  <div class="dialog">
+    <div class="between"><h3 id="eventModalTitle">Tambah Event</h3><button class="btn ghost" data-close="modalEvent">✖</button></div>
+    <div class="row">
+      <div class="field">
+        <label>Nama Event</label>
+        <input id="evName"/>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="evStatus">
+          <option value="draft">Draft</option>
+          <option value="live">Live</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Mulai</label>
+        <input id="evStart" type="datetime-local"/>
+      </div>
+      <div class="field">
+        <label>Selesai</label>
+        <input id="evEnd" type="datetime-local"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Lokasi / Venue</label>
+      <input id="evVenue"/>
+    </div>
+    <div class="field">
+      <label>Deskripsi</label>
+      <textarea id="evDesc"></textarea>
+    </div>
+    <div class="between">
+      <div class="muted">ID: <span id="evIdLabel">baru</span></div>
+      <div class="flex">
+        <button class="btn danger hidden" id="btnDelEvent">Hapus</button>
+        <button class="btn primary" id="btnSaveEvent">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalTicket">
+  <div class="dialog">
+    <div class="between"><h3 id="ticketModalTitle">Tambah Kategori Tiket</h3><button class="btn ghost" data-close="modalTicket">✖</button></div>
+    <div class="row">
+      <div class="field">
+        <label>Event</label>
+        <select id="tkEvent"></select>
+      </div>
+      <div class="field">
+        <label>Nama Tiket</label>
+        <input id="tkName"/>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Harga (<span id="tkCurr">IDR</span>)</label>
+        <input id="tkPrice" type="number" min="0" step="1000"/>
+      </div>
+      <div class="field">
+        <label>Kuota</label>
+        <input id="tkQuota" type="number" min="0" step="1"/>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Waktu Jual Dari</label>
+        <input id="tkFrom" type="datetime-local"/>
+      </div>
+      <div class="field">
+        <label>Waktu Jual Sampai</label>
+        <input id="tkTo" type="datetime-local"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Deskripsi</label>
+      <textarea id="tkDesc"></textarea>
+    </div>
+    <div class="between">
+      <div class="muted">ID: <span id="tkIdLabel">baru</span></div>
+      <div class="flex">
+        <button class="btn danger hidden" id="btnDelTicket">Hapus</button>
+        <button class="btn primary" id="btnSaveTicket">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalOrder">
+  <div class="dialog">
+    <div class="between"><h3 id="orderModalTitle">Tambah Pesanan</h3><button class="btn ghost" data-close="modalOrder">✖</button></div>
+    <div class="row">
+      <div class="field">
+        <label>Event</label>
+        <select id="odEvent"></select>
+      </div>
+      <div class="field">
+        <label>Kategori Tiket</label>
+        <select id="odTicket"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Nama Pembeli</label>
+        <input id="odBuyer"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="odEmail" type="email"/>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Jumlah</label>
+        <input id="odQty" type="number" min="1" value="1"/>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="odStatus">
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="refunded">Refunded</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="between">
+      <div class="muted">Kode Pesanan: <span id="odCode">otomatis</span></div>
+      <div class="flex">
+        <button class="btn danger hidden" id="btnDelOrder">Hapus</button>
+        <button class="btn primary" id="btnSaveOrder">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN (overlay if not logged in) -->
+<div id="loginScreen" class="modal" style="display:flex; backdrop-filter: blur(2px);">
+  <div class="dialog login-wrap">
+    <div class="between"><h3>Login Admin</h3></div>
+    <div class="notice">Demo login (tanpa server). Gunakan email & kata sandi apa saja.</div>
+    <div class="field"><label>Email</label><input id="lgEmail" type="email" placeholder="admin@domain.com" /></div>
+    <div class="field"><label>Password</label><input id="lgPass" type="password" placeholder="********" /></div>
+    <div class="between">
+      <label class="flex" style="gap:8px"><input type="checkbox" id="lgRemember"> Ingat saya</label>
+      <button class="btn primary" id="btnLogin">Masuk</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============================
+   UTIL & STORAGE LAYER
+============================= */
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
+const fmt = new Intl.NumberFormat('id-ID');
+const state = {
+  theme: localStorage.getItem('me_theme')||'dark',
+  session: JSON.parse(localStorage.getItem('me_session')||'null'),
+  db: loadDB(),
+  editing: {event:null,ticket:null,order:null}
+};
+function loadDB(){
+  const raw = localStorage.getItem('me_db');
+  if(raw){ try { return JSON.parse(raw); } catch(e){} }
+  // default skeleton
+  return {
+    settings:{orgName:"MegaEvent ID", adminEmail:"admin@domain.com", currency:"IDR"},
+    events:[], tickets:[], orders:[]
+  };
+}
+function saveDB(){ localStorage.setItem('me_db', JSON.stringify(state.db)); updateDbSize(); renderAll(); }
+function updateDbSize(){
+  const bytes = (localStorage.getItem('me_db')||'').length;
+  const kb = (bytes/1024).toFixed(1);
+  $('#dbSize').textContent = kb+' KB';
+}
+function uid(prefix='id'){
+  return prefix + '_' + Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-4);
+}
+function nowISO(){ return new Date().toISOString().slice(0,16); } // yyyy-mm-ddThh:mm
+function money(n){ return (state.db.settings.currency||'IDR') + ' ' + fmt.format(n||0); }
+function toCSV(rows){
+  return rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+function download(filename, text){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function setTheme(v){ document.body.setAttribute('data-theme', v); localStorage.setItem('me_theme', v); }
+/* =============================
+   AUTH (Demo)
+============================= */
+function isLogged(){ return !!state.session; }
+function login(email, remember){
+  state.session = { email, ts: Date.now() };
+  if(remember) localStorage.setItem('me_session', JSON.stringify(state.session));
+  $('#loginScreen').style.display='none';
+}
+function logout(){
+  state.session = null;
+  localStorage.removeItem('me_session');
+  $('#loginScreen').style.display='flex';
+}
+
+/* =============================
+   RENDER HELPERS
+============================= */
+function navTo(hash){
+  $$('a[data-nav]').forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+hash));
+  $$('.view').forEach(v=>v.classList.add('hidden'));
+  const el = $('#view-'+hash);
+  if(el) el.classList.remove('hidden');
+  if(hash==='tickets'){ populateEventSelects(); renderTickets(); }
+  if(hash==='events'){ renderEvents(); }
+  if(hash==='orders'){ populateEventSelects(); renderOrders(); }
+  if(hash==='attendees'){ populateEventSelects(); renderAttendees(); }
+  if(hash==='dashboard'){ renderDashboard(); }
+}
+function populateEventSelects(){
+  const opts = state.db.events.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  $('#selEventForTickets').innerHTML = '<option value="">Pilih Event</option>'+opts;
+  $('#selEventForAttendees').innerHTML = '<option value="">Pilih Event</option>'+opts;
+  $('#tkEvent').innerHTML = opts;
+  $('#odEvent').innerHTML = '<option value="">Pilih Event</option>'+opts;
+  updateTicketOptionsForOrder();
+}
+function updateTicketOptionsForOrder(){
+  const evId = $('#odEvent').value;
+  const tickets = state.db.tickets.filter(t=>t.eventId===evId);
+  $('#odTicket').innerHTML = tickets.map(t=>`<option value="${t.id}" data-price="${t.price}">${t.name} — ${money(t.price)} (sisa ${Math.max(0,t.quota - soldForTicket(t.id))})</option>`).join('');
+}
+
+/* =============================
+   DASHBOARD
+============================= */
+function soldForTicket(ticketId){
+  return state.db.orders.filter(o=>o.ticketId===ticketId && o.status!=='cancelled' && o.status!=='refunded')
+    .reduce((a,b)=>a+b.qty,0);
+}
+function revenueForOrder(o){
+  const t = state.db.tickets.find(x=>x.id===o.ticketId);
+  const price = t ? t.price : 0;
+  const gross = o.qty * price;
+  if(o.status==='refunded' || o.status==='cancelled') return 0;
+  if(o.status==='pending') return 0;
+  return gross;
+}
+function renderDashboard(){
+  const active = state.db.events.filter(e=>e.status==='live').length;
+  const totalEvents = state.db.events.length;
+  const totalCapacity = state.db.tickets.reduce((a,b)=>a+b.quota,0);
+  const totalSold = state.db.tickets.reduce((a,b)=>a+soldForTicket(b.id),0);
+  const revenue = state.db.orders.reduce((a,b)=>a+revenueForOrder(b),0);
+  const refunded = state.db.orders.filter(o=>o.status==='refunded').reduce((a,b)=>{
+    const t=state.db.tickets.find(x=>x.id===b.ticketId); return a + (t? t.price*b.qty : 0);
+  },0);
+
+  $('#kpiEvents').textContent = active;
+  $('#kpiEventsTotal').textContent = totalEvents;
+  $('#kpiSold').textContent = fmt.format(totalSold);
+  $('#kpiCapacity').textContent = fmt.format(totalCapacity);
+  $('#kpiRevenue').textContent = fmt.format(revenue);
+  $('#kpiRefund').textContent = fmt.format(refunded);
+
+  // Latest events table
+  const rows = state.db.events
+    .slice().sort((a,b)=>new Date(b.start)-new Date(a.start)).slice(0,6)
+    .map(e=>{
+      const sold = state.db.tickets.filter(t=>t.eventId===e.id).reduce((a,t)=>a+soldForTicket(t.id),0);
+      const status = `<span class="status ${e.status}">${e.status}</span>`;
+      return `<tr>
+        <td><b>${e.name}</b><div class="muted">${e.venue||'-'}</div></td>
+        <td>${fmtDateTime(e.start)} → ${fmtDateTime(e.end)}</td>
+        <td>${status}</td>
+        <td class="right">${sold}</td>
+      </tr>`;
+    }).join('');
+  $('#latestEvents').innerHTML = rows || `<tr><td colspan="4" class="empty">Belum ada event</td></tr>`;
+
+  drawSalesChart();
+}
+function fmtDateTime(v){ if(!v) return '-'; const d=new Date(v); return d.toLocaleString('id-ID'); }
+
+function drawSalesChart(){
+  const canvas = $('#chartSales'); const ctx = canvas.getContext('2d');
+  const data = state.db.events.map(e=>{
+    const sold = state.db.tickets.filter(t=>t.eventId===e.id).reduce((a,t)=>a+soldForTicket(t.id),0);
+    return {label:e.name, value:sold};
+  });
+  const W = canvas.width = canvas.clientWidth;
+  const H = canvas.height = 160;
+  ctx.clearRect(0,0,W,H);
+  // axes
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border');
+  ctx.beginPath(); ctx.moveTo(40,10); ctx.lineTo(40,H-30); ctx.lineTo(W-10,H-30); ctx.stroke();
+
+  const max = Math.max(5, ...data.map(d=>d.value));
+  const barW = Math.max(16, (W-60)/(data.length || 1)-10);
+  data.forEach((d,i)=>{
+    const x = 50 + i*(barW+10);
+    const h = (H-50) * (d.value/max);
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary');
+    ctx.fillRect(x, H-30-h, barW, h);
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--muted');
+    ctx.font = '12px system-ui';
+    const lbl = d.label.length>10? d.label.slice(0,10)+'…' : d.label;
+    ctx.fillText(lbl, x, H-12);
+    ctx.fillText(d.value, x, H-35-h);
+  });
+}
+
+/* =============================
+   EVENTS CRUD
+============================= */
+function renderEvents(){
+  const q = $('#qEvents').value.toLowerCase().trim();
+  const f = $('#fStatus').value;
+  const filtered = state.db.events.filter(e=>{
+    const okQ = !q || [e.name,e.venue,e.desc].join(' ').toLowerCase().includes(q);
+    const okF = !f || e.status===f;
+    return okQ && okF;
+  }).sort((a,b)=>new Date(a.start)-new Date(b.start));
+  const rows = filtered.map(e=>{
+    const tCount = state.db.tickets.filter(t=>t.eventId===e.id).length;
+    const sold = state.db.tickets.filter(t=>t.eventId===e.id).reduce((a,t)=>a+soldForTicket(t.id),0);
+    return `<tr>
+      <td><b>${e.name}</b><div class="muted">${e.venue||'-'}</div></td>
+      <td>${fmtDateTime(e.start)} → ${fmtDateTime(e.end)}</td>
+      <td><span class="status ${e.status}">${e.status}</span></td>
+      <td>${tCount} tiket</td>
+      <td class="right">${sold}</td>
+      <td class="right">
+        <button class="btn" onclick="openEvent('${e.id}')">Edit</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $('#eventsTableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>Event</th><th>Waktu</th><th>Status</th><th>Kategori</th><th>Terjual</th><th class="right">Aksi</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="6" class="empty">Belum ada event. Klik "Tambah Event".</td></tr>`}</tbody>
+    </table>
+  `;
+}
+function openEvent(id){
+  const isNew = !id;
+  $('#eventModalTitle').textContent = isNew?'Tambah Event':'Edit Event';
+  $('#btnDelEvent').classList.toggle('hidden', isNew);
+  const e = isNew ? {id:null,name:'',status:'draft',start:nowISO(),end:nowISO(),venue:'',desc:''}
+                  : state.db.events.find(x=>x.id===id);
+  state.editing.event = e?.id || null;
+  $('#evIdLabel').textContent = e.id || 'baru';
+  $('#evName').value = e.name||'';
+  $('#evStatus').value = e.status||'draft';
+  $('#evStart').value = (e.start||nowISO()).slice(0,16);
+  $('#evEnd').value = (e.end||nowISO()).slice(0,16);
+  $('#evVenue').value = e.venue||'';
+  $('#evDesc').value = e.desc||'';
+  showModal('modalEvent', true);
+}
+function saveEvent(){
+  const payload = {
+    id: state.editing.event || uid('ev'),
+    name: $('#evName').value.trim(),
+    status: $('#evStatus').value,
+    start: $('#evStart').value,
+    end: $('#evEnd').value,
+    venue: $('#evVenue').value.trim(),
+    desc: $('#evDesc').value.trim()
+  };
+  if(!payload.name) return alert('Nama event wajib diisi');
+  const idx = state.db.events.findIndex(x=>x.id===payload.id);
+  if(idx>=0){ state.db.events[idx]=payload; } else { state.db.events.push(payload); }
+  saveDB(); hideModal('modalEvent');
+}
+function delEvent(){
+  const id = state.editing.event;
+  if(!id) return;
+  if(!confirm('Hapus event ini beserta tiket & pesanan terkait?')) return;
+  state.db.tickets = state.db.tickets.filter(t=>t.eventId!==id);
+  state.db.orders = state.db.orders.filter(o=>o.eventId!==id);
+  state.db.events = state.db.events.filter(e=>e.id!==id);
+  saveDB(); hideModal('modalEvent');
+}
+
+/* =============================
+   TICKETS CRUD
+============================= */
+function renderTickets(){
+  const evId = $('#selEventForTickets').value;
+  const list = state.db.tickets.filter(t=>!evId || t.eventId===evId);
+  const rows = list.map(t=>{
+    const e = state.db.events.find(x=>x.id===t.eventId);
+    const sold = soldForTicket(t.id);
+    return `<tr>
+      <td><b>${t.name}</b><div class="muted">${e?e.name:'-'}</div></td>
+      <td>${money(t.price)}</td>
+      <td>${t.quota}</td>
+      <td class="${sold>t.quota?'danger-text': 'success-text'}">${sold}</td>
+      <td>${fmtDateTime(t.saleFrom)} → ${fmtDateTime(t.saleTo)}</td>
+      <td class="right"><button class="btn" onclick="openTicket('${t.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+  $('#ticketsTableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>Tiket</th><th>Harga</th><th>Kuota</th><th>Terjual</th><th>Jual</th><th class="right">Aksi</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="6" class="empty">Belum ada kategori tiket.</td></tr>`}</tbody>
+    </table>
+  `;
+}
+function openTicket(id){
+  const isNew = !id;
+  $('#ticketModalTitle').textContent = isNew?'Tambah Kategori Tiket':'Edit Kategori Tiket';
+  $('#btnDelTicket').classList.toggle('hidden', isNew);
+  const t = isNew ? {id:null,eventId: state.db.events[0]?.id, name:'',price:0,quota:0,saleFrom:nowISO(),saleTo:nowISO(),desc:''}
+                  : state.db.tickets.find(x=>x.id===id);
+  state.editing.ticket = t?.id || null;
+  $('#tkIdLabel').textContent = t.id || 'baru';
+  $('#tkEvent').value = t.eventId || '';
+  $('#tkName').value = t.name || '';
+  $('#tkPrice').value = t.price || 0;
+  $('#tkQuota').value = t.quota || 0;
+  $('#tkFrom').value = (t.saleFrom||nowISO()).slice(0,16);
+  $('#tkTo').value = (t.saleTo||nowISO()).slice(0,16);
+  $('#tkDesc').value = t.desc || '';
+  $('#tkCurr').textContent = state.db.settings.currency || 'IDR';
+  showModal('modalTicket', true);
+}
+function saveTicket(){
+  const payload = {
+    id: state.editing.ticket || uid('tk'),
+    eventId: $('#tkEvent').value,
+    name: $('#tkName').value.trim(),
+    price: +$('#tkPrice').value || 0,
+    quota: +$('#tkQuota').value || 0,
+    saleFrom: $('#tkFrom').value,
+    saleTo: $('#tkTo').value,
+    desc: $('#tkDesc').value.trim()
+  };
+  if(!payload.eventId) return alert('Pilih event untuk tiket ini.');
+  if(!payload.name) return alert('Nama tiket wajib diisi.');
+  const idx = state.db.tickets.findIndex(x=>x.id===payload.id);
+  if(idx>=0){ state.db.tickets[idx]=payload; } else { state.db.tickets.push(payload); }
+  saveDB(); hideModal('modalTicket');
+}
+function delTicket(){
+  const id = state.editing.ticket;
+  if(!id) return;
+  if(!confirm('Hapus kategori tiket ini? Pesanan terkait akan ikut terhapus.')) return;
+  state.db.orders = state.db.orders.filter(o=>o.ticketId!==id);
+  state.db.tickets = state.db.tickets.filter(t=>t.id!==id);
+  saveDB(); hideModal('modalTicket');
+}
+
+/* =============================
+   ORDERS CRUD
+============================= */
+function renderOrders(){
+  const q = $('#qOrders').value.toLowerCase().trim();
+  const f = $('#fOrderStatus').value;
+  const list = state.db.orders.filter(o=>{
+    const ticket = state.db.tickets.find(t=>t.id===o.ticketId);
+    const event = state.db.events.find(e=>e.id===o.eventId);
+    const hay = [o.code,o.buyer,o.email,event?.name,ticket?.name].join(' ').toLowerCase();
+    const okQ = !q || hay.includes(q);
+    const okF = !f || o.status===f;
+    return okQ && okF;
+  }).sort((a,b)=>b.created - a.created);
+  const rows = list.map(o=>{
+    const t = state.db.tickets.find(t=>t.id===o.ticketId);
+    const e = state.db.events.find(e=>e.id===o.eventId);
+    const total = t ? t.price * o.qty : 0;
+    const badge = `<span class="status ${o.status==='paid'?'live':(o.status==='pending'?'draft':'closed')}">${o.status}</span>`;
+    return `<tr>
+      <td><b>${o.code}</b><div class="muted">${new Date(o.created).toLocaleString('id-ID')}</div></td>
+      <td><b>${o.buyer}</b><div class="muted">${o.email}</div></td>
+      <td>${e?e.name:'-'}</td>
+      <td>${t?t.name:'-'}</td>
+      <td>${o.qty}</td>
+      <td>${money(total)}</td>
+      <td>${badge}</td>
+      <td class="right">
+        <button class="btn" onclick="openOrder('${o.id}')">Edit</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $('#ordersTableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>Kode</th><th>Pembeli</th><th>Event</th><th>Tiket</th><th>Qty</th><th>Total</th><th>Status</th><th class="right">Aksi</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="8" class="empty">Belum ada pesanan.</td></tr>`}</tbody>
+    </table>
+  `;
+}
+function openOrder(id){
+  const isNew = !id;
+  $('#orderModalTitle').textContent = isNew?'Tambah Pesanan':'Edit Pesanan';
+  $('#btnDelOrder').classList.toggle('hidden', isNew);
+  const o = isNew ? {id:null, eventId:'', ticketId:'', buyer:'', email:'', qty:1, status:'pending', code:null, created: Date.now()}
+                  : state.db.orders.find(x=>x.id===id);
+  state.editing.order = o?.id || null;
+  $('#odEvent').value = o.eventId || '';
+  updateTicketOptionsForOrder();
+  $('#odTicket').value = o.ticketId || $('#odTicket').value;
+  $('#odBuyer').value = o.buyer || '';
+  $('#odEmail').value = o.email || '';
+  $('#odQty').value = o.qty || 1;
+  $('#odStatus').value = o.status || 'pending';
+  $('#odCode').textContent = o.code || 'otomatis';
+  showModal('modalOrder', true);
+}
+function saveOrder(){
+  const eventId = $('#odEvent').value;
+  const ticketId = $('#odTicket').value;
+  const qty = +$('#odQty').value || 1;
+  if(!eventId) return alert('Pilih event.');
+  if(!ticketId) return alert('Pilih kategori tiket.');
+  const ticket = state.db.tickets.find(t=>t.id===ticketId);
+  const sold = soldForTicket(ticketId);
+  if($('#odStatus').value!=='refunded' && $('#odStatus').value!=='cancelled' && sold + qty > ticket.quota){
+    if(!confirm('Jumlah melebihi kuota. Lanjutkan (demo)?')) return;
+  }
+  const payload = {
+    id: state.editing.order || uid('od'),
+    eventId, ticketId,
+    buyer: $('#odBuyer').value.trim(),
+    email: $('#odEmail').value.trim(),
+    qty, status: $('#odStatus').value,
+    code: $('#odCode').textContent==='otomatis' ? genOrderCode() : $('#odCode').textContent,
+    created: Date.now()
+  };
+  const idx = state.db.orders.findIndex(x=>x.id===payload.id);
+  if(idx>=0){ // preserve created and code if existed
+    payload.created = state.db.orders[idx].created;
+    payload.code = state.db.orders[idx].code;
+    state.db.orders[idx]=payload;
+  } else {
+    state.db.orders.push(payload);
+  }
+  saveDB(); hideModal('modalOrder');
+}
+function genOrderCode(){
+  const letters='ABCDEFGHJKMNPQRSTUVWXYZ';
+  const part = ()=> letters[Math.floor(Math.random()*letters.length)]+Math.floor(100+Math.random()*900);
+  return part()+'-'+part();
+}
+function delOrder(){
+  const id = state.editing.order;
+  if(!id) return;
+  if(!confirm('Hapus pesanan ini?')) return;
+  state.db.orders = state.db.orders.filter(o=>o.id!==id);
+  saveDB(); hideModal('modalOrder');
+}
+
+/* =============================
+   ATTENDEES (derived from orders)
+============================= */
+function renderAttendees(){
+  const evId = $('#selEventForAttendees').value;
+  const rows = state.db.orders
+    .filter(o=>(!evId || o.eventId===evId) && o.status==='paid')
+    .map(o=>{
+      const t = state.db.tickets.find(t=>t.id===o.ticketId);
+      const e = state.db.events.find(e=>e.id===o.eventId);
+      return Array.from({length:o.qty}).map((_,i)=>({ // expand per seat
+        code: o.code+'-'+String(i+1).padStart(3,'0'),
+        buyer: o.buyer, email:o.email, event:e?.name||'-', ticket:t?.name||'-'
+      }));
+    })
+    .flat();
+  const trs = rows.map(a=>`<tr>
+    <td><b>${a.code}</b></td>
+    <td>${a.buyer}<div class="muted">${a.email}</div></td>
+    <td>${a.event}</td>
+    <td>${a.ticket}</td>
+  </tr>`).join('');
+  $('#attendeesTableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>Kode Tiket</th><th>Peserta</th><th>Event</th><th>Tiket</th></tr></thead>
+      <tbody>${trs || `<tr><td colspan="4" class="empty">Belum ada peserta (hanya status "paid").</td></tr>`}</tbody>
+    </table>
+  `;
+}
+
+/* =============================
+   EXPORTERS
+============================= */
+function exportEvents(){
+  const rows = [['id','name','status','start','end','venue','desc']];
+  state.db.events.forEach(e=>rows.push([e.id,e.name,e.status,e.start,e.end,e.venue,e.desc]));
+  download('events.csv', toCSV(rows));
+}
+function exportTickets(){
+  const rows = [['id','eventId','name','price','quota','saleFrom','saleTo','desc']];
+  state.db.tickets.forEach(t=>rows.push([t.id,t.eventId,t.name,t.price,t.quota,t.saleFrom,t.saleTo,t.desc]));
+  download('tickets.csv', toCSV(rows));
+}
+function exportOrders(){
+  const rows = [['id','code','eventId','ticketId','buyer','email','qty','status','created']];
+  state.db.orders.forEach(o=>rows.push([o.id,o.code,o.eventId,o.ticketId,o.buyer,o.email,o.qty,o.status,new Date(o.created).toISOString()]));
+  download('orders.csv', toCSV(rows));
+}
+function exportAttendees(){
+  const evId = $('#selEventForAttendees').value;
+  const rows = [['code','buyer','email','event','ticket']];
+  state.db.orders
+    .filter(o=>(!evId || o.eventId===evId) && o.status==='paid')
+    .forEach(o=>{
+      const t = state.db.tickets.find(t=>t.id===o.ticketId);
+      const e = state.db.events.find(e=>e.id===o.eventId);
+      for(let i=1;i<=o.qty;i++){
+        rows.push([`${o.code}-${String(i).padStart(3,'0')}`, o.buyer, o.email, e?.name||'', t?.name||'']);
+      }
+    });
+  download('attendees.csv', toCSV(rows));
+}
+/* =============================
+   SETTINGS + DB TOOLS
+============================= */
+function loadSettingsToForm(){
+  $('#orgName').value = state.db.settings.orgName||'';
+  $('#adminEmail').value = state.db.settings.adminEmail||'';
+  $('#currency').value = state.db.settings.currency||'IDR';
+}
+function saveSettings(){
+  state.db.settings.orgName = $('#orgName').value.trim();
+  state.db.settings.adminEmail = $('#adminEmail').value.trim();
+  state.db.settings.currency = $('#currency').value;
+  saveDB(); alert('Pengaturan disimpan.');
+}
+function backupDB(){
+  download('backup_me_db.json', JSON.stringify(state.db, null, 2));
+}
+function wipeDB(){
+  if(!confirm('Hapus semua data?')) return;
+  state.db = {settings:{orgName:"MegaEvent ID", adminEmail:"admin@domain.com", currency:"IDR"}, events:[], tickets:[], orders:[]};
+  saveDB();
+}
+function seedDB(){
+  if(!confirm('Isi dengan data contoh? Ini akan menimpa data sekarang.')) return;
+  const ev1 = {id:uid('ev'), name:'Jakarta Tech Fest', status:'live', start:new Date(Date.now()+3*86400000).toISOString(), end:new Date(Date.now()+4*86400000).toISOString(), venue:'JCC Senayan', desc:'Konferensi teknologi.'};
+  const ev2 = {id:uid('ev'), name:'Bali Music Night', status:'draft', start:new Date(Date.now()+10*86400000).toISOString(), end:new Date(Date.now()+10.5*86400000).toISOString(), venue:'Bali Nusa Dua', desc:'Malam musik.'};
+  const ev3 = {id:uid('ev'), name:'Surabaya Startups Meetup', status:'live', start:new Date(Date.now()+7*86400000).toISOString(), end:new Date(Date.now()+7.2*86400000).toISOString(), venue:'Tunjungan Plaza', desc:'Meetup founder.'};
+  const t1 = {id:uid('tk'), eventId:ev1.id, name:'Early Bird', price:150000, quota:100, saleFrom:new Date().toISOString(), saleTo:new Date(Date.now()+2*86400000).toISOString(), desc:''};
+  const t2 = {id:uid('tk'), eventId:ev1.id, name:'Regular', price:250000, quota:250, saleFrom:new Date().toISOString(), saleTo:ev1.start, desc:''};
+  const t3 = {id:uid('tk'), eventId:ev3.id, name:'General', price:100000, quota:120, saleFrom:new Date().toISOString(), saleTo:ev3.start, desc:''};
+  const o1 = {id:uid('od'), eventId:ev1.id, ticketId:t1.id, buyer:'Dewi Lestari', email:'dewi@example.com', qty:2, status:'paid', code:genOrderCode(), created:Date.now()-3600e3};
+  const o2 = {id:uid('od'), eventId:ev1.id, ticketId:t2.id, buyer:'Budi Santoso', email:'budi@example.com', qty:3, status:'pending', code:genOrderCode(), created:Date.now()-1800e3};
+  const o3 = {id:uid('od'), eventId:ev3.id, ticketId:t3.id, buyer:'Siti Aminah', email:'siti@example.com', qty:1, status:'paid', code:genOrderCode(), created:Date.now()-7200e3};
+  state.db = {
+    settings:{orgName:"MegaEvent ID", adminEmail:"admin@domain.com", currency:"IDR"},
+    events:[ev1,ev2,ev3], tickets:[t1,t2,t3], orders:[o1,o2,o3]
+  };
+  saveDB();
+  navTo('dashboard');
+}
+
+/* =============================
+   MODAL + MISC UI
+============================= */
+function showModal(id, show){ const el = $('#'+id); el.style.display= show?'flex':'none'; }
+function hideModal(id){ showModal(id,false); }
+function wireModalClose(){
+  $$('[data-close]').forEach(btn=>{
+    const id = btn.getAttribute('data-close');
+    btn.addEventListener('click', ()=>hideModal(id));
+  });
+  $$('.modal').forEach(m=>{
+    m.addEventListener('click', (e)=>{ if(e.target===m) m.style.display='none'; });
+  });
+}
+
+/* =============================
+   GLOBAL SEARCH
+============================= */
+function globalSearch(query){
+  query = query.toLowerCase().trim();
+  if(!query) return;
+  // priority: orders by code match → events → tickets
+  const order = state.db.orders.find(o=>o.code.toLowerCase()===query);
+  if(order){ navTo('orders'); $('#qOrders').value=order.code; renderOrders(); return; }
+  const event = state.db.events.find(e=>e.name.toLowerCase().includes(query));
+  if(event){ navTo('events'); $('#qEvents').value=event.name; renderEvents(); return; }
+  const ticket = state.db.tickets.find(t=>t.name.toLowerCase().includes(query));
+  if(ticket){
+    navTo('tickets'); $('#selEventForTickets').value=ticket.eventId; renderTickets(); return;
+  }
+  alert('Tidak ditemukan. Coba kata kunci lain.');
+}
+
+/* =============================
+   INIT & EVENTS
+============================= */
+function renderAll(){
+  renderDashboard();
+  renderEvents();
+  renderTickets();
+  renderOrders();
+  renderAttendees();
+  loadSettingsToForm();
+}
+function bindEvents(){
+  // nav
+  $$('a[data-nav]').forEach(a=>a.addEventListener('click', (e)=>{
+    e.preventDefault(); navTo(a.getAttribute('href').slice(1));
+  }));
+  // theme
+  $('#btnTheme').addEventListener('click', ()=>{
+    state.theme = (document.body.getAttribute('data-theme')==='dark')?'light':'dark';
+    setTheme(state.theme);
+    drawSalesChart();
+  });
+  // login
+  $('#btnLogin').addEventListener('click', ()=>{
+    const email=$('#lgEmail').value.trim(); const pass=$('#lgPass').value;
+    if(!email || !pass) return alert('Masukkan email & password.');
+    login(email, $('#lgRemember').checked);
+  });
+  $('#btnLogout').addEventListener('click', (e)=>{ e.preventDefault(); logout(); });
+
+  // events
+  $('#btnAddEvent').addEventListener('click', ()=>openEvent(null));
+  $('#btnSaveEvent').addEventListener('click', saveEvent);
+  $('#btnDelEvent').addEventListener('click', delEvent);
+  $('#qEvents').addEventListener('input', renderEvents);
+  $('#fStatus').addEventListener('change', renderEvents);
+  $('#btnExportEvents').addEventListener('click', exportEvents);
+
+  // tickets
+  $('#btnAddTicket').addEventListener('click', ()=> openTicket(null));
+  $('#btnSaveTicket').addEventListener('click', saveTicket);
+  $('#btnDelTicket').addEventListener('click', delTicket);
+  $('#selEventForTickets').addEventListener('change', renderTickets);
+  $('#btnExportTickets').addEventListener('click', exportTickets);
+
+  // orders
+  $('#btnAddOrder').addEventListener('click', ()=> openOrder(null));
+  $('#btnSaveOrder').addEventListener('click', saveOrder);
+  $('#btnDelOrder').addEventListener('click', delOrder);
+  $('#qOrders').addEventListener('input', renderOrders);
+  $('#fOrderStatus').addEventListener('change', renderOrders);
+  $('#odEvent').addEventListener('change', updateTicketOptionsForOrder);
+  $('#btnExportOrders').addEventListener('click', exportOrders);
+
+  // attendees
+  $('#selEventForAttendees').addEventListener('change', renderAttendees);
+  $('#btnExportAttendees').addEventListener('click', exportAttendees);
+
+  // settings
+  $('#btnSaveSettings').addEventListener('click', saveSettings);
+  $('#btnBackup').addEventListener('click', backupDB);
+  $('#btnWipe').addEventListener('click', wipeDB);
+  $('#btnSeed').addEventListener('click', seedDB);
+
+  // search
+  $('#globalSearch').addEventListener('keydown', (e)=>{ if(e.key==='Enter') globalSearch(e.target.value); });
+  window.addEventListener('keydown', (e)=>{ if(e.ctrlKey && e.key==='/'){ e.preventDefault(); $('#globalSearch').focus(); } });
+
+  // close modal
+  wireModalClose();
+  // misc
+  updateDbSize();
+}
+
+(function bootstrap(){
+  setTheme(state.theme);
+  bindEvents();
+  renderAll();
+  if(!isLogged()) $('#loginScreen').style.display='flex'; else $('#loginScreen').style.display='none';
+  // hash route
+  const hash = location.hash.replace('#','') || 'dashboard'; navTo(hash);
+})();
+</script>
+</body>
+</html>
+
